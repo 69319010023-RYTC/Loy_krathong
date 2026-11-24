@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ลอยกระทงออนไลน์ ๓มิติ | Loy Krathong 3D Online</title>
+
+  <!-- Google Fonts: Sarabun & Kanit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Sarabun:ital,wght@0,300;0,400;0,600;0,700;1,300&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <!-- 3D WebGL Canvas -->
+  <canvas id="webgl-canvas"></canvas>
+
+  <!-- First Tap Welcome Overlay (Audio Autoplay Requirement) -->
+  <div id="first-tap-overlay" class="first-tap-overlay" onclick="window.dismissFirstTap ? window.dismissFirstTap() : (this.classList.add('hidden'), setTimeout(() => this.style.display='none', 400))">
+    <div class="welcome-box" onclick="event.stopPropagation(); window.dismissFirstTap ? window.dismissFirstTap() : (document.getElementById('first-tap-overlay').classList.add('hidden'))">
+      <div class="moon-icon">🌕 ✨ 🪷</div>
+      <h2>ประเพณีลอยกระทง</h2>
+      <p class="subtitle">ขอเชิญร่วมสืบสานประเพณีไทย ขอขมาพระแม่คงคา และอธิษฐานรับพรอันประเสริฐใต้แสงจันทร์วันเพ็ญ</p>
+      
+      <button type="button" class="btn-start-festive" onclick="event.stopPropagation(); window.dismissFirstTap ? window.dismissFirstTap() : (document.getElementById('first-tap-overlay').classList.add('hidden'))">
+        <span>🪷 เริ่มต้นลอยกระทง</span>
+      </button>
+
+      <div class="tap-hint">
+        <span class="pulse-dot"></span> แตะตรงไหนก็ได้เพื่อเริ่มต้น
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Navigation & Controls Bar -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="krathong-logo">🪷</span>
+      <div class="title-group">
+        <h1 class="main-title">ลอยกระทง ๓มิติ</h1>
+        <span class="sub-title">Loy Krathong 3D Festival</span>
+      </div>
+    </div>
+
+    <!-- Camera View Presets -->
+    <nav class="view-nav">
+      <button class="nav-view-btn active" data-view="pier" title="ท่าน้ำลอยกระทง">
+        <span>ท่าน้ำลอยกระทง</span>
+      </button>
+      <button class="nav-view-btn" data-view="stage" title="เวทีประกวดนางนพมาศ">
+        <span>เวทีนางนพมาศ</span>
+      </button>
+      <button class="nav-view-btn" data-view="fair" title="เจดีย์ทรายและซุ้มงานวัด">
+        <span>เจดีย์ทราย & ซุ้มวัด</span>
+      </button>
+      <button class="nav-view-btn" data-view="overview" title="มุมมองรอบทิศทาง">
+        <span>มุมสูง 360°</span>
+      </button>
+    </nav>
+
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <!-- Fireworks Trigger Button -->
+      <button id="btn-launch-firework" class="btn-festive" title="คลิกเพื่อจุดพลุ (หรือคลิกที่ท้องฟ้า)">
+        <span class="btn-icon">🎆</span>
+        <span class="btn-text">จุดพลุ</span>
+      </button>
+
+      <!-- Loy Krathong History & Knowledge Modal Button -->
+      <button id="btn-open-contestants" class="btn-secondary" title="อ่านประวัติวันลอยกระทงและบทสวดขอขมาพระแม่คงคา">
+        <span class="btn-icon">📜</span>
+        <span class="btn-text">ประวัติ & ขอขมา</span>
+      </button>
+
+      <!-- Web Audio Synthesizer BGM Toggle -->
+      <button id="btn-sound-toggle" class="btn-audio active" title="เปิด/ปิด เสียงเพลงรำวงวันลอยกระทง">
+        <svg class="icon pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        </svg>
+        <span id="audio-track-label">เพลงรำวง</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Sky Hint -->
+  <div class="sky-hint">
+    ✨ คลิกบนท้องฟ้าเพื่อจุดพลุหลากสีสัน
+  </div>
+
+  <!-- Bottom Floating Krathong Dock Card -->
+  <aside id="krathong-dock" class="krathong-dock">
+    <div class="dock-header">
+      <div class="dock-title-row">
+        <span class="dock-icon">🪷</span>
+        <h2>ประดิษฐ์และลอยกระทง</h2>
+      </div>
+      <button id="btn-toggle-dock" class="btn-toggle-dock" title="ย่อ/ขยายหน้าต่าง">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <div class="dock-body">
+      <!-- Input Name -->
+      <div class="input-group">
+        <label for="input-name">ชื่อของคุณ / ครอบครัว</label>
+        <input type="text" id="input-name" placeholder="ระบุชื่อผู้ลอยกระทง..." maxlength="25" value="กอบกู้ & ครอบครัว" />
+      </div>
+
+      <!-- Input Wish -->
+      <div class="input-group">
+        <label for="input-wish">คำอธิษฐานขอขมาพระแม่คงคา</label>
+        <input type="text" id="input-wish" placeholder="พิมพ์คำอธิษฐานของคุณ..." maxlength="50" value="ขอขมาพระแม่คงคา ขอให้ครอบครัวร่มเย็นเป็นสุข สุขภาพแข็งแรง" />
+
+        <!-- Quick Wish Pills -->
+        <div class="wish-pills-row">
+          <button type="button" class="wish-pill">ขอขมาพระแม่คงคา</button>
+          <button type="button" class="wish-pill">ครอบครัวร่มเย็นเป็นสุข</button>
+          <button type="button" class="wish-pill">การงานก้าวหน้า ค้าขายร่ำรวย</button>
+          <button type="button" class="wish-pill">สอบผ่านฉลุย สำเร็จทุกสิ่ง</button>
+          <button type="button" class="wish-pill">พบเจอความรักที่ดีและจริงใจ</button>
+        </div>
+      </div>
+
+      <!-- Select Krathong Style -->
+      <div class="input-group">
+        <label>เลือกแบบกระทงมงคล</label>
+        <div class="style-cards-grid">
+          <div class="style-card selected" data-style="banana_leaf">
+            <span class="card-emoji">🍃</span>
+            <div class="card-name">ใบตองวิจิตร</div>
+            <div class="card-tag">กล้วยไม้ม่วง</div>
+          </div>
+          <div class="style-card" data-style="lotus_lamp_gold">
+            <span class="card-emoji">🪷</span>
+            <div class="card-name">บัวประทีปทอง</div>
+            <div class="card-tag">เรืองแสงทอง</div>
+          </div>
+          <div class="style-card" data-style="lotus_lamp_purple">
+            <span class="card-emoji">🌸</span>
+            <div class="card-name">บัวประทีปม่วง</div>
+            <div class="card-tag">เรืองแสงม่วง</div>
+          </div>
+          <div class="style-card" data-style="royal_swan">
+            <span class="card-emoji">🦢</span>
+            <div class="card-name">สุพรรณหงส์</div>
+            <div class="card-tag">ทองคำหลวง</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Float & Lantern Action Buttons -->
+      <div class="action-buttons-row">
+        <button id="btn-release-krathong" class="btn-release" title="ปล่อยกระทงลงแม่น้ำ">
+          <span class="release-glow"></span>
+          <span>🪷 ปล่อยกระทงลงน้ำ</span>
+        </button>
+        <button id="btn-release-lantern" class="btn-release-lantern" title="ปล่อยโคมลอยขึ้นสู่ท้องฟ้า">
+          <span>🏮 ปล่อยโคมสู่ฟ้า</span>
+        </button>
+      </div>
+
+      <div class="action-secondary-row">
+        <button id="btn-follow-krathong" class="btn-follow" title="ส่องตามกระทงของคุณ">
+          <span>🔭 ติดตามกระทง / โคมไฟ</span>
+        </button>
+      </div>
+
+      <!-- Setting bloom toggle -->
+      <div class="settings-row">
+        <label class="toggle-label">
+          <input type="checkbox" id="toggle-bloom" checked />
+          <span class="toggle-slider"></span>
+          <span>แสงฟุ้งเรืองรอง (Bloom Effect)</span>
+        </label>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Release Success Floating Notification Toast -->
+  <div id="release-toast" class="toast">
+    <div class="toast-content">
+      <span class="toast-icon">✨</span>
+      <div>
+        <strong>ลอยกระทงสำเร็จแล้ว!</strong>
+        <p>ขอให้คำอธิษฐานของคุณสัมฤทธิ์ผล และเคราะห์ภัยลอยไปกับสายน้ำ 🌕🪷</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Loy Krathong History, Meaning & Prayer Info -->
+  <div id="contestants-modal" class="modal-backdrop">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h2>ประวัติวันลอยกระทง & บทสวดขอขมาพระแม่คงคา</h2>
+          <p>สาระน่ารู้ ความหมายอันศักดิ์สิทธิ์ และมรดกประเพณีอันดีงามของไทย</p>
+        </div>
+        <button id="btn-close-contestants" class="btn-close-modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div id="contestants-grid" class="contestants-info-grid">
+          <!-- Populated by main.js from CONTESTANTS_DATA -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
